@@ -16,15 +16,13 @@
  * =============================================================================
  */
 
-#include <iterator>
 #include <iostream>
 #include <stdexcept>
 #include "Snake.hpp"
 
 Snake::Snake(const sf::Vector2f& pos, const size_t length,
 			 const float gridSize, const direction::Direction dir)
-	: mGridSize(gridSize)
-	, mPieces() //vector is default initialized
+	: mPieces() //vector is default initialized
 {
 	//offsets in the current movement direction
 	sf::Vector2f offsets(direction::getMoveOffsets(dir));
@@ -41,11 +39,6 @@ Snake::Snake(const sf::Vector2f& pos, const size_t length,
 	}
 }
 
-const Piece& Snake::getHead() const
-{
-	return mPieces.front();
-}
-
 void Snake::setPosition(const sf::Vector2f& pos)
 {
 	this->setPosition(pos.x, pos.y);
@@ -57,7 +50,7 @@ void Snake::setPosition(const float x, const float y)
 	sf::Vector2f headNewPos(x, y);
 	mPieces.front().setPosition(headNewPos); //place head at the given pos
 	//start from the second element
-	std::vector<Piece>::iterator iter = std::next(mPieces.begin(), 1);
+	auto iter = std::next(mPieces.begin());
 	for (; iter != mPieces.end(); ++iter) {
 		//relative pos of this piece to the old position of head
 		sf::Vector2f dstToHead = oldPosition - iter->getPosition();
@@ -77,25 +70,24 @@ void Snake::setDirection(const direction::Direction& dir)
 
 void Snake::setFillColor(const sf::Color color)
 {
-	for (Piece& p: mPieces) {
+	for (auto& p: mPieces) {
 		p.setFillColor(color); //uniform color to all pieces
 	}
 }
 
-void Snake::move()
+void Snake::move(const float distance)
 {
-	std::vector<Piece>::iterator iter(mPieces.begin());
-	for (; iter != mPieces.end(); ++iter) {
-		iter->move();
+	for (auto& p : mPieces) {
+		p.move(distance);
 	}
 	this->shiftDirections();
 }
 
 bool Snake::isDead() const
 {
-	std::vector<Piece>::const_iterator iter = std::next(mPieces.begin(), 1);
+	auto iter = std::next(mPieces.begin());
 	for (; iter != mPieces.end(); ++iter) {
-		if (this->getHead().atTheSamePosition(*iter)) {
+		if (mPieces.front().atTheSamePosition(*iter)) {
 			return true;
 		}
 	}
@@ -106,11 +98,15 @@ void Snake::addPiece(const Piece& p)
 {
 	Piece addedPiece(p);
 	addedPiece.setDirection(mPieces.back().getDirection());
-	sf::Vector2f tailPos(mPieces.back().getPosition());
-	sf::Vector2f offsets(direction::getMoveOffsets(mPieces.back().getDirection()));
+	const sf::Vector2f& tailPos(mPieces.back().getPosition());
+	sf::Vector2f offsets(
+					direction::getMoveOffsets(mPieces.back().getDirection()));
+	//we are going to place the new piece in the opposite direction of current
+	//direction of the last piece
 	offsets = -offsets;
-	sf::Vector2f newPos(tailPos.x + mGridSize * offsets.x,
-						tailPos.y + mGridSize * offsets.y);
+	const float gridSize = mPieces.back().getSize();
+	sf::Vector2f newPos(tailPos.x + gridSize * offsets.x,
+						tailPos.y + gridSize * offsets.y);
 	addedPiece.setPosition(newPos);
 	addedPiece.setFillColor(this->getFillColor());
 	mPieces.push_back(addedPiece);
@@ -118,32 +114,29 @@ void Snake::addPiece(const Piece& p)
 
 bool Snake::contains(const Piece& p) const
 {
-	std::vector<Piece>::const_iterator iter(mPieces.begin());
-	for (; iter != mPieces.end(); ++iter) {
-		if (iter->atTheSamePosition(p)) {
+	for (const auto& piece : mPieces) {
+		if (piece.atTheSamePosition(p)) {
 			return true;
 		}
 	}
 	return false;
 }
 
-/*
+/**
  * Shifts the direction of each Piece to the one that is following it.
  */
 void Snake::shiftDirections()
 {
-	std::vector<Piece>::iterator iter(std::prev(mPieces.end(), 2));
-	//iterate over [First elem, Previous of Last elem]
-	//end() points to the One Past Last elem
-	for (; iter != std::prev(mPieces.begin(), 1); --iter) {
-		std::vector<Piece>::iterator next_iter = std::next(iter, 1);
-		next_iter->setDirection(iter->getDirection());
+	auto reverse_iter = mPieces.rbegin();//start from the last element
+	for (; reverse_iter != mPieces.rend() - 1; ++reverse_iter) {
+		auto left = reverse_iter + 1; //left neighbour of reverse_iter
+		reverse_iter->setDirection(left->getDirection());
 	}
 }
 
 void Snake::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-	for (const Piece& p : mPieces) {
+	for (const auto& p : mPieces) {
 		target.draw(p, states);
 	}
 }

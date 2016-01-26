@@ -19,7 +19,7 @@ CXXFLAGS = -g -O -Wall -Weffc++ -pedantic  \
 -Wunused-parameter \
 -Wvariadic-macros \
 -Wwrite-strings -w -Wl,-subsystem,windows \
--std=c++11
+-std=c++14
 
 TARGET = bin/main.exe
 

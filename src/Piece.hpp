@@ -24,31 +24,44 @@ public:
 	void setPosition(const sf::Vector2f&);
 	void setFillColor(const sf::Color&);
 	//getters
-	direction::Direction getDirection() const;
-	const sf::Vector2f& getPosition() const;
-	const sf::Color& getFillColor() const;
+	direction::Direction getDirection() const noexcept { return mDirection; };
+	const sf::Vector2f&
+	getPosition() const noexcept { return mCircle.getPosition(); };
+	const sf::Color&
+	getFillColor() const noexcept { return mCircle.getFillColor(); };
+	/**
+	  * Returns the length of one of the edges of of the bounding square
+	  * of this circle object.
+	  */
+	float getSize() const noexcept { return mCircle.getRadius() * 2; }
+	sf::FloatRect getGlobalBounds() const { return mCircle.getGlobalBounds(); };
 	/**
 	  * Method checking if this Piece object is at the same (x, y) coordinates
 	  * with the given Piece object.
 	  */
 	bool atTheSamePosition(const Piece&) const;
+	bool atTheSamePosition(const sf::Vector2f&) const;
 	/**
 	  * Moves this Piece object in its current direction by distance equal to
 	  * the length of one of its edges.
 	  */
-	void move();
+	void move(const float dist);
 private:
 	/**
 	  * Draws this Piece object to the screen. SFML specific function.
 	  * See SFML RenderTarget
 	  */
-	virtual void draw(sf::RenderTarget&, sf::RenderStates) const;
+	void draw(sf::RenderTarget&, sf::RenderStates) const override;
 private:
 	/**
 	  * Composition is preferred over public inheritance mainly because there
 	  * is no wish to expose all the interface sf::RectangleShape object is
 	  * exposing publicly
 	  */
-	sf::RectangleShape mSquare; //Underlying RectangleShape object
+	sf::CircleShape mCircle; //Underlying RectangleShape object
 	direction::Direction mDirection; //Current direction
+	/*
+	* Error term for checking when two pieces are at the same position
+	*/
+	const float ErrorTerm = 0.001f;
 };

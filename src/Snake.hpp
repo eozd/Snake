@@ -35,10 +35,6 @@ public:
 	Snake(const sf::Vector2f& pos, const size_t length, const float gridSize,
 		  const direction::Direction dir);
 	/**
-	 * Returns the head of this Snake object. Its head is a Piece object
-	 */
-	const Piece& getHead() const;
-	/**
 	  * setPosition preserves the relative positions of parts of a Snake object.
 	  * If this Snake object was linear before a setPosition call, it will
 	  * remain linear after a setPosition call. Its head will now be in the
@@ -46,19 +42,14 @@ public:
 	  */
 	void setPosition(const float x, const float y);
 	void setPosition(const sf::Vector2f& pos);
-	/**
-	  * Returns the position of the head of this Snake object
-	  */
-	const sf::Vector2f& getPosition() const
-	{
-		return mPieces.front().getPosition();
-	}
+	const Piece& getHead() const noexcept { return mPieces.front(); };
+	auto getSize() const noexcept { return mPieces.size(); };
 	/**
 	 * Sets and gets the direction of this Snake object. A Snake object's
 	 * direction is defined as the direction of its head which is a Piece.
 	 * A Snake object's direction cannot be changed by 180 degrees.
 	 */
-	direction::Direction getDirection() const
+	direction::Direction getDirection() const noexcept
 	{
 		return mPieces.front().getDirection();
 	}
@@ -76,7 +67,7 @@ public:
 	 * are shifted. Each Piece will have the direction of the Piece that it is
 	 * following. This way, Snake moves as a whole.
 	 */
-	void move();
+	void move(const float dist);
 	/**
 	 * Checks if this Snake object is dead. A snake object dies whenever
 	 * it eats itself. That is, its head and some other RectangleShape
@@ -102,10 +93,9 @@ private:
 	  * Draws this Snake object on the given RenderTarget object.
 	  * SFML specific method. Check SFML RenderTarget
 	  */
-	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
 private:
-	float mGridSize; //length of one side of a piece consisting this Snake
 	std::vector<Piece> mPieces; //collection of Pieces consisting this Snake
 };
 

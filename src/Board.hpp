@@ -4,7 +4,7 @@
 #include <vector>
 #include <SFML/Graphics.hpp>
 
-class Board : public sf::Drawable
+class Board
 {
 public:
 	/**
@@ -13,42 +13,28 @@ public:
 	  * then edge length of a single grid is 400/20 = 20 and there are 20 * 20
 	  * 400 grids on the Board.
 	  */
-	Board(const int width, const int height, const int numOfGrids);
-	/**
-	  * Sets the color of how this Board object is drawn on the screen.
-	  */
-	void setColor(const sf::Color);
-	sf::Color getColor() const;
+	Board(const unsigned int width, const unsigned int height,
+		  const unsigned int numOfGrids);
 	/** If this Board object contains the given Locatable type object
-	  * Locatable type objects must have getPosition() method returning a 
-	  * Vector2f object
+	  * Locatable type objects must have getGlobalBounds() method returning a 
+	  * FloatRect object
 	  */
+	unsigned int getWidth() const noexcept { return mWidth; };
+	unsigned int getHeight() const noexcept { return mHeight; };
+	unsigned int getNumOfGrids() const noexcept { return mNumOfGrids; };
 	template<typename Locatable>
 	bool contains(const Locatable& obj) const
 	{
-		sf::Vector2f pos(obj.getPosition());
-		return pos.x >= 0 && pos.x <= (mWidth - mWidth / mNumOfGrids) &&
-			   pos.y >= 0 && pos.y <= (mHeight - mHeight / mNumOfGrids);
+		sf::FloatRect rect(obj.getGlobalBounds());
+		return rect.left >= 0
+			&& rect.left + rect.width <= mWidth
+			&& rect.top >= 0
+			&& rect.top + rect.height <= mHeight;
 	}
-
 private:
-	/**
-	  * Calculates the position of each line that consists this Board object
-	  * and initializes them i.e. stores them in mLines vector
-	  */
-	void initLines();
-	/**
-	  * Draws this Board object to the screen.
-	  */
-	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-private:
-	//a line is a pair of vertices. Collection of lines will define our board
-	const unsigned int LineVectorCount;
-	const int mWidth;
-	const int mHeight;
-	const int mNumOfGrids;
-	const sf::Color defaultColor;
-	std::vector<sf::VertexArray> mLines;
+	const unsigned int mWidth;
+	const unsigned int mHeight;
+	const unsigned int mNumOfGrids;
 };
 
 #endif

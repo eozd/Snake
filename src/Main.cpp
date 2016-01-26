@@ -37,5 +37,6 @@ int main(int argc, char** argv)
 		}
 	}
 	Game game(500, 500, gridNumber);
+	game.restart();
 	game.run();
 }

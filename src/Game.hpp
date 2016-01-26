@@ -25,38 +25,53 @@
 class Game
 {
 public:
-	Game(const int width, const int height, const int numOfGrids);
+	Game(const unsigned int width, const unsigned int height,
+		 const unsigned int numOfGrids);
 	Game(const Game&) = delete;
 	Game(const Game&&) = delete;
 	Game& operator=(const Game&) = delete;
 	Game& operator=(const Game&&) = delete;
 
+	void restart();
 	void run();
 private:
 	void update(); //updates the game state
 	void render(); //renders the objects to the screen
-	void handleEvents(); //handles all events
-	//pressed = true ==> pressed; pressed = false ==> released
-	void handleKeyEvents(const sf::Keyboard::Key key, const bool pressed);
+	void handleKeyEvents();
 	/**
 	  * Finds a new random position for the give Piece object within the
 	  * boundaries of width and height of the board.
 	  */
 	void findRandomPosition(Piece&);
+	void initGameOverText(sf::Text&) const;
 private:
 	//CONSTANTS
-	const float mGridSize; //Length of a single edge of a grid.
-	const int mNumOfGrids; //Number of grids in one edge of the Board.
-	const size_t mInitialSnakeSize; //How many grids Snake will be at the begin
-	const double mSecondsBetweenSteps; //How many seconds between each "tick"
+	//How many grids Snake will be at the begin
+	const sf::Color BackgroundColor{189, 183, 107};
+	const sf::Color SnakeColor{0, 100, 0};
+	const sf::Color PieceColor{139, 69, 19};
+	const sf::Vector2f InitialSnakePoint{0, 0};
+	const size_t InitialSnakeSize{3};
+	//How many seconds between each "tick"
+	const double SecondsBetweenSteps{0.1};
+	const float FPS{10.0f};
+	const sf::Time TimePerFrame{sf::seconds(1.0f / FPS)};
+	const int ScoreAdd{1};
 private:
-	//MEMBERS
+	enum class State
+	{
+		Playing,
+		Paused,
+		GameOver,
+	};
+	State mGameState{State::Paused}; //current state of the game
+	//Object representing the Board. It stores the width, height and grid size
+	Board mBoard;
 	sf::RenderWindow mWindow; //main rendering window
-	Board mBoard; //Object representing the Board. It handles how the Board is
-				  //drawn and the stuff related to the width and height of the
-				  //Board
+	sf::Font mFont; //font that will be used throughout the game
+	sf::Text mScoreText; //text object for drawing the player score
 	Snake mSnake; //Snake object
 	Piece mPiece; //Piece object that the Snake is trying to eat
-	int mScore; //Score of the player
+	int mScore{0}; //Score of the player
 };
 #endif

@@ -2,7 +2,7 @@
 #include "Piece.hpp"
 
 Piece::Piece(const float x, const float y, const float edgeLength)
-	: mSquare(sf::Vector2f(edgeLength, edgeLength))
+	: mCircle(edgeLength / 2)
 	, mDirection(direction::NoDirection)
 {
 	this->setPosition(x, y);
@@ -10,7 +10,7 @@ Piece::Piece(const float x, const float y, const float edgeLength)
 }
 
 Piece::Piece(const sf::Vector2f pos, const float edgeLength)
-	: mSquare(sf::Vector2f(edgeLength, edgeLength))
+	: mCircle(edgeLength / 2)
 	, mDirection(direction::NoDirection)
 {
 	this->setPosition(pos);
@@ -29,49 +29,38 @@ void Piece::setPosition(const float x, const float y)
 
 void Piece::setPosition(const sf::Vector2f& pos)
 {
-	mSquare.setPosition(pos);
+	mCircle.setPosition(pos);
 }
 
 void Piece::setFillColor(const sf::Color& color)
 {
-	mSquare.setFillColor(color);
+	mCircle.setFillColor(color);
 }
 
-direction::Direction Piece::getDirection() const
-{
-	return mDirection;
-}
-
-const sf::Vector2f& Piece::getPosition() const
-{
-	return mSquare.getPosition();
-}
-
-const sf::Color& Piece::getFillColor() const
-{
-	return mSquare.getFillColor();
-}
-
-void Piece::move()
+void Piece::move(const float dist)
 {
 	sf::Vector2f offsets(direction::getMoveOffsets(mDirection));
-	//mSquare.getSize.x == msquare.getSize.y (Piece being a square is an
+	//mCircle.getSize.x == msquare.getSize.y (Piece being a square is an
 	// invariant of this class)
-	mSquare.move(offsets * mSquare.getSize().x);
+	mCircle.move(offsets * dist);
+}
+
+bool Piece::atTheSamePosition(const sf::Vector2f& pos) const
+{
+	sf::Vector2f piecePos(this->getPosition());
+	float xDiff = piecePos.x - pos.x;
+	float yDiff = piecePos.y - pos.y;
+	xDiff = std::abs(xDiff);
+	yDiff = std::abs(yDiff);
+	return xDiff < ErrorTerm && yDiff < ErrorTerm;
 }
 
 bool Piece::atTheSamePosition(const Piece& other) const
 {
-	sf::Vector2f pos(getPosition());
-	sf::Vector2f otherPos(other.getPosition());
-	float xDiff = pos.x - otherPos.x;
-	float yDiff = pos.y - otherPos.y;
-	xDiff = std::abs(xDiff);
-	yDiff = std::abs(yDiff);
-	return xDiff < 0.0001 && yDiff < 0.0001;
+	return this->atTheSamePosition(other.getPosition());
 }
 
 void Piece::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-	target.draw(mSquare, states);
+	target.draw(mCircle, states);
 }

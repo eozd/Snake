@@ -16,114 +16,159 @@
  * =============================================================================
  */
 
+#include <string>
 #include <cstdlib>
 #include <iostream>
 #include "Game.hpp"
 #include "Direction.hpp"
 
-Game::Game(const int width, const int height, const int numOfGrids)
-	: mGridSize(width / (float)numOfGrids)
-	, mNumOfGrids(numOfGrids)
-	, mInitialSnakeSize(5)
-	, mSecondsBetweenSteps(0.1)
-	, mWindow(sf::VideoMode((unsigned int)width, (unsigned int)height), "Snake")
-	, mBoard(width, height, numOfGrids)
-	, mSnake(sf::Vector2f(0, 0), mInitialSnakeSize, mGridSize, direction::Right)
-	, mPiece(0, 0, mGridSize)
-	
+Game::Game(const unsigned int width, const unsigned int height,
+		   const unsigned int numOfGrids)
+	: mBoard(width, height, numOfGrids)
+	, mWindow(sf::VideoMode(width, height + height / numOfGrids),"Snake")
+	, mFont()
+	, mScoreText()
+	, mSnake(InitialSnakePoint, InitialSnakeSize, height / numOfGrids,
+			 direction::Right)
+	, mPiece(0, 0, height / numOfGrids)
 {
 	if (width <= 0 || height <= 0 || width != height) {
 		throw std::invalid_argument("Window must be square");
 	}
-	mPiece.setFillColor(sf::Color::Red);
-	mSnake.setFillColor(sf::Color::Black);
-	this->findRandomPosition(mPiece);
+	if (!mFont.loadFromFile("assets/Inconsolata.otf")) {
+		throw std::runtime_error("Game ctor: Failed to load Inconsolata.otf");
+	}
+	mScoreText.setFont(mFont);
+	mScoreText.setPosition(0, height);
+	mScoreText.setColor(sf::Color::Red);
+	mScoreText.setCharacterSize(25);
+	mScoreText.setString("Score: " + std::to_string(mScore));
+	mPiece.setFillColor(PieceColor);
+	mSnake.setFillColor(SnakeColor);
 	mWindow.setVerticalSyncEnabled(true);
-	mWindow.clear(sf::Color::White);
+	mWindow.clear(BackgroundColor);
+}
+
+void Game::restart()
+{
+	unsigned int gridSize = mBoard.getWidth() / mBoard.getNumOfGrids();
+	mScore = 0;
+	mScoreText.setString("Score:" + std::to_string(mScore));
+	mSnake = Snake(InitialSnakePoint, InitialSnakeSize, gridSize,
+				   direction::Right);
+	this->findRandomPosition(mPiece);
+	mGameState = State::Playing;
 }
 
 void Game::run()
 {
-	while (mWindow.isOpen() && !mSnake.isDead() && mBoard.contains(mSnake)) {
-		handleEvents();
-		update();
+	sf::Clock clock;
+	sf::Time timeSinceLastUpdate = sf::Time::Zero;
+	while (mWindow.isOpen()) {
+		timeSinceLastUpdate += clock.restart();
+		while (timeSinceLastUpdate > TimePerFrame) {
+			timeSinceLastUpdate -= TimePerFrame;
+			handleKeyEvents();
+			if (mGameState == State::Playing) {
+				update();
+			}
+		}
 		render();
-		//wait for the give amount
-		sf::Clock clock;
-		while (clock.getElapsedTime().asSeconds() < mSecondsBetweenSteps);
 	}
 }
 
 void Game::update()
 {
-	mSnake.move();
-	if (mSnake.getHead().atTheSamePosition(mPiece)) {
+	if (mSnake.isDead() || !mBoard.contains(mSnake.getHead())) {
+		mGameState = State::GameOver;
+	}
+	float gridSize = (float)mBoard.getWidth() / mBoard.getNumOfGrids();
+	mSnake.move(gridSize);
+	if (mPiece.atTheSamePosition(mSnake.getHead().getPosition())) {
 		mSnake.addPiece(mPiece);
+		mScore += ScoreAdd;
+		mScoreText.setString("Score:" + std::to_string(mScore));
 		this->findRandomPosition(mPiece);
 	}
 }
 
 void Game::render()
 {
-	mWindow.clear(sf::Color::White);
-	mWindow.draw(mBoard);
-	mWindow.draw(mPiece);
-	mWindow.draw(mSnake);
+	mWindow.clear(BackgroundColor);
+	switch (mGameState) {
+	case State::Playing:
+	case State::Paused:
+		mWindow.draw(mPiece);
+		mWindow.draw(mSnake);
+		mWindow.draw(mScoreText);
+		break;
+	case State::GameOver:
+	{
+		static sf::Text gameOverText;
+		static bool gameOverTextInitialized{false};
+		if (!gameOverTextInitialized) {
+			initGameOverText(gameOverText);
+		}
+		mWindow.draw(gameOverText);
+		mWindow.draw(mScoreText);
+		break;
+	}
+	default:
+		break;
+	}
 	mWindow.display();
 }
 
-void Game::handleEvents()
+void Game::handleKeyEvents()
 {
-	sf::Event e;
-	while (mWindow.pollEvent(e)) {
-		switch (e.type) {
-		case sf::Event::Closed:
-			mWindow.close();
-			break;
-		case sf::Event::KeyPressed:
-			handleKeyEvents(e.key.code, true);
-			break;
-		case sf::Event::KeyReleased:
-			handleKeyEvents(e.key.code, false);
-			break;
-		default:
-			break;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
+		mWindow.close();
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P)) {
+		if (mGameState == State::Playing) {
+			mGameState = State::Paused;
+		} else if (mGameState == State::Paused) {
+			mGameState = State::Playing;
 		}
 	}
-}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
+		this->restart();
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
+		mSnake.setDirection(direction::Up);
 
-void Game::handleKeyEvents(const sf::Keyboard::Key key, const bool pressed)
-{
-	if (pressed) {
-		switch (key) {
-		case sf::Keyboard::Up:
-			mSnake.setDirection(direction::Up);
-			break;
-		case sf::Keyboard::Down:
-			mSnake.setDirection(direction::Down);
-			break;
-		case sf::Keyboard::Left:
-			mSnake.setDirection(direction::Left);
-			break;
-		case sf::Keyboard::Right:
-			mSnake.setDirection(direction::Right);
-			break;
-		default:
-			mSnake.setDirection(direction::NoDirection);
-			break;
-		}
-	}
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
+		mSnake.setDirection(direction::Down);
+
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
+		mSnake.setDirection(direction::Left);
+
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
+		mSnake.setDirection(direction::Right);
 }
 
 void Game::findRandomPosition(Piece& p)
 {
+	float gridSize = (float)mBoard.getWidth() / mBoard.getNumOfGrids();
 	while (true) {
-		int xGridPos = std::rand() % mNumOfGrids;
-		int yGridPos = std::rand() % mNumOfGrids;
-		sf::Vector2f newPos(xGridPos * mGridSize, yGridPos * mGridSize);
+		unsigned int xGridPos = static_cast<unsigned int>(std::rand())
+							  % mBoard.getNumOfGrids();
+		unsigned int yGridPos = static_cast<unsigned int>(std::rand())
+							  % mBoard.getNumOfGrids();
+		sf::Vector2f newPos(xGridPos * gridSize, yGridPos * gridSize);
 		p.setPosition(newPos);
 		if (!mSnake.contains(p)) {
 			break;
 		}
 	}
+}
+
+void Game::initGameOverText(sf::Text& gameOverText) const
+{
+	gameOverText.setFont(mFont);
+	gameOverText.setColor(sf::Color::Black);
+	gameOverText.setCharacterSize(60);
+	gameOverText.setString("GAME OVER");
+	sf::FloatRect rect = gameOverText.getLocalBounds();
+	gameOverText.setOrigin(rect.left + rect.width / 2,
+						   rect.top + rect.height / 2);
+	gameOverText.setPosition(mBoard.getWidth() / 2, mBoard.getHeight() / 2);
 }
